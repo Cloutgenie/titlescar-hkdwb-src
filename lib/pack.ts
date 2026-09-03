@@ -298,5 +298,5 @@ export function packFilename(form: ClaimForm) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 48);
-  return `titlescar-dv-pack-${slug || "stop"}.zip`;
+  return `titlescar-dv-pack-${slug || "claim"}.zip`;
 }
