@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
@@ -43,42 +43,32 @@ export function ClaimFormFields({
   pendingLabel = "Working…",
   onSubmit,
 }: Props) {
-  const draft = readDraft();
+  const [draft, setDraft] = useState<Partial<ClaimForm> | null>(null);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [state, setState] = useState(draft?.state ?? "");
-  const [year, setYear] = useState(str(draft?.year));
-  const [make, setMake] = useState(draft?.make ?? "");
-  const [model, setModel] = useState(draft?.model ?? "");
-  const [mileage, setMileage] = useState(str(draft?.mileage));
-  const [preAccidentValue, setPreAccidentValue] = useState(
-    str(draft?.preAccidentValue)
-  );
-  const [repairCost, setRepairCost] = useState(str(draft?.repairCost));
-  const [structural, setStructural] = useState<"yes" | "no">(
-    draft?.structural === "yes" ? "yes" : "no"
-  );
-  const [insurerName, setInsurerName] = useState(draft?.insurerName ?? "");
-  const [claimType, setClaimType] = useState<"first" | "third">(
-    draft?.claimType === "first" ? "first" : "third"
-  );
-  const [atFaultName, setAtFaultName] = useState(draft?.atFaultName ?? "");
+
+  useEffect(() => {
+    setDraft(readDraft());
+    setReady(true);
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    const data = new FormData(event.currentTarget);
     const parsed = parseClaimForm({
-      state,
-      year,
-      make,
-      model,
-      mileage,
-      preAccidentValue,
-      repairCost,
-      structural,
-      insurerName,
-      claimType,
-      atFaultName,
+      state: data.get("state"),
+      year: data.get("year"),
+      make: data.get("make"),
+      model: data.get("model"),
+      mileage: data.get("mileage"),
+      preAccidentValue: data.get("preAccidentValue"),
+      repairCost: data.get("repairCost"),
+      structural: data.get("structural"),
+      insurerName: data.get("insurerName"),
+      claimType: data.get("claimType"),
+      atFaultName: data.get("atFaultName"),
     });
     if (!parsed.success) {
       setError(formErrorMessage(parsed.error));
@@ -95,6 +85,10 @@ export function ClaimFormFields({
     }
   }
 
+  if (!ready) {
+    return <p className="text-sm text-muted-foreground">Loading the form…</p>;
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-5">
       <Field label="State" htmlFor="state">
@@ -102,8 +96,7 @@ export function ClaimFormFields({
           id="state"
           name="state"
           required
-          value={state}
-          onChange={(event) => setState(event.currentTarget.value)}
+          defaultValue={draft?.state ?? ""}
           className={cn(fieldClass, "bg-background")}
         >
           <option value="">Select state</option>
@@ -116,55 +109,83 @@ export function ClaimFormFields({
       </Field>
       <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Year" htmlFor="year">
-          <NumberField
+          <input
             id="year"
-            value={year}
-            onChange={setYear}
+            name="year"
+            required
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            defaultValue={str(draft?.year)}
             placeholder="2019"
+            className={fieldClass}
           />
         </Field>
         <Field label="Make" htmlFor="make">
-          <TextField
+          <input
             id="make"
-            value={make}
-            onChange={setMake}
+            name="make"
+            required
+            type="text"
+            autoComplete="off"
+            defaultValue={draft?.make ?? ""}
             placeholder="Honda"
+            className={fieldClass}
           />
         </Field>
         <Field label="Model" htmlFor="model">
-          <TextField
+          <input
             id="model"
-            value={model}
-            onChange={setModel}
+            name="model"
+            required
+            type="text"
+            autoComplete="off"
+            defaultValue={draft?.model ?? ""}
             placeholder="CR-V EX"
+            className={fieldClass}
           />
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Mileage" htmlFor="mileage">
-          <NumberField
+          <input
             id="mileage"
-            value={mileage}
-            onChange={setMileage}
+            name="mileage"
+            required
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            defaultValue={str(draft?.mileage)}
             placeholder="42000"
+            className={fieldClass}
           />
         </Field>
         <Field label="Pre-accident value (USD)" htmlFor="preAccidentValue">
-          <NumberField
+          <input
             id="preAccidentValue"
-            value={preAccidentValue}
-            onChange={setPreAccidentValue}
+            name="preAccidentValue"
+            required
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            defaultValue={str(draft?.preAccidentValue)}
             placeholder="18500"
+            className={fieldClass}
           />
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Repair $ (invoice or quote)" htmlFor="repairCost">
-          <NumberField
+          <input
             id="repairCost"
-            value={repairCost}
-            onChange={setRepairCost}
+            name="repairCost"
+            required
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            defaultValue={str(draft?.repairCost)}
             placeholder="6400"
+            className={fieldClass}
           />
         </Field>
         <fieldset className="grid gap-2">
@@ -173,24 +194,26 @@ export function ClaimFormFields({
             name="structural"
             value="yes"
             label="Yes"
-            checked={structural === "yes"}
-            onChange={() => setStructural("yes")}
+            defaultChecked={draft?.structural === "yes"}
           />
           <Radio
             name="structural"
             value="no"
             label="No"
-            checked={structural === "no"}
-            onChange={() => setStructural("no")}
+            defaultChecked={draft?.structural !== "yes"}
           />
         </fieldset>
       </div>
       <Field label="Insurer name" htmlFor="insurerName">
-        <TextField
+        <input
           id="insurerName"
-          value={insurerName}
-          onChange={setInsurerName}
+          name="insurerName"
+          required
+          type="text"
+          autoComplete="off"
+          defaultValue={draft?.insurerName ?? ""}
           placeholder="State Farm"
+          className={fieldClass}
         />
       </Field>
       <fieldset className="grid gap-2">
@@ -199,15 +222,13 @@ export function ClaimFormFields({
           name="claimType"
           value="third"
           label="Third-party — at-fault driver’s carrier"
-          checked={claimType === "third"}
-          onChange={() => setClaimType("third")}
+          defaultChecked={draft?.claimType !== "first"}
         />
         <Radio
           name="claimType"
           value="first"
           label="First-party — my own insurer"
-          checked={claimType === "first"}
-          onChange={() => setClaimType("first")}
+          defaultChecked={draft?.claimType === "first"}
         />
         <p className="text-xs leading-5 text-muted-foreground">
           If you mark first-party and you are not in Georgia, TitleScar will not
@@ -216,11 +237,15 @@ export function ClaimFormFields({
         </p>
       </fieldset>
       <Field label="At-fault driver name" htmlFor="atFaultName">
-        <TextField
+        <input
           id="atFaultName"
-          value={atFaultName}
-          onChange={setAtFaultName}
+          name="atFaultName"
+          required
+          type="text"
+          autoComplete="off"
+          defaultValue={draft?.atFaultName ?? ""}
           placeholder="Alex Rivera"
+          className={fieldClass}
         />
       </Field>
       {error ? (
@@ -228,73 +253,19 @@ export function ClaimFormFields({
           {error}
         </p>
       ) : null}
-      <Button
+      <button
         type="submit"
         disabled={pending}
-        className="h-12 w-full text-base"
-        size="lg"
+        className={cn(buttonVariants({ size: "lg" }), "h-12 w-full text-base")}
       >
         {pending ? pendingLabel : submitLabel}
-      </Button>
+      </button>
     </form>
   );
 }
 
 const fieldClass =
   "h-10 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm";
-
-function TextField({
-  id,
-  value,
-  onChange,
-  placeholder,
-}: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <input
-      id={id}
-      name={id}
-      required
-      type="text"
-      autoComplete="off"
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      placeholder={placeholder}
-      className={cn(fieldClass)}
-    />
-  );
-}
-
-function NumberField({
-  id,
-  value,
-  onChange,
-  placeholder,
-}: {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <input
-      id={id}
-      name={id}
-      required
-      type="text"
-      inputMode="decimal"
-      autoComplete="off"
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-      placeholder={placeholder}
-      className={cn(fieldClass)}
-    />
-  );
-}
 
 function Field({
   label,
@@ -317,14 +288,12 @@ function Radio({
   name,
   value,
   label,
-  checked,
-  onChange,
+  defaultChecked,
 }: {
   name: string;
   value: string;
   label: string;
-  checked: boolean;
-  onChange: () => void;
+  defaultChecked?: boolean;
 }) {
   const id = `${name}-${value}`;
   return (
@@ -334,8 +303,7 @@ function Radio({
         type="radio"
         name={name}
         value={value}
-        checked={checked}
-        onChange={onChange}
+        defaultChecked={defaultChecked}
         className="size-4 accent-primary"
       />
       {label}
