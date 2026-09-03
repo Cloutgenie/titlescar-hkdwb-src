@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -36,6 +36,11 @@ type Props = {
   onSubmit: (form: ClaimForm) => Promise<void>;
 };
 
+function str(value: string | number | undefined) {
+  if (value === undefined || value === null) return "";
+  return String(value);
+}
+
 export function ClaimFormFields({
   submitLabel,
   pendingLabel = "Working…",
@@ -45,26 +50,43 @@ export function ClaimFormFields({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [state, setState] = useState(draft?.state ?? "");
+  const [year, setYear] = useState(str(draft?.year));
+  const [make, setMake] = useState(draft?.make ?? "");
+  const [model, setModel] = useState(draft?.model ?? "");
+  const [mileage, setMileage] = useState(str(draft?.mileage));
+  const [preAccidentValue, setPreAccidentValue] = useState(
+    str(draft?.preAccidentValue)
+  );
+  const [repairCost, setRepairCost] = useState(str(draft?.repairCost));
+  const [structural, setStructural] = useState<"yes" | "no">(
+    draft?.structural === "yes" ? "yes" : "no"
+  );
+  const [insurerName, setInsurerName] = useState(draft?.insurerName ?? "");
+  const [claimType, setClaimType] = useState<"first" | "third">(
+    draft?.claimType === "first" ? "first" : "third"
+  );
+  const [atFaultName, setAtFaultName] = useState(draft?.atFaultName ?? "");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    const data = new FormData(event.currentTarget);
     const parsed = parseClaimForm({
       state,
-      year: data.get("year"),
-      make: data.get("make"),
-      model: data.get("model"),
-      mileage: data.get("mileage"),
-      preAccidentValue: data.get("preAccidentValue"),
-      repairCost: data.get("repairCost"),
-      structural: data.get("structural"),
-      insurerName: data.get("insurerName"),
-      claimType: data.get("claimType"),
-      atFaultName: data.get("atFaultName"),
+      year,
+      make,
+      model,
+      mileage,
+      preAccidentValue,
+      repairCost,
+      structural,
+      insurerName,
+      claimType,
+      atFaultName,
     });
     if (!parsed.success) {
-      setError("Check the required fields. Year, miles, and dollars must be numbers.");
+      setError(
+        "Check the required fields. Year, miles, and dollars must be numbers."
+      );
       return;
     }
     writeDraft(parsed.data);
@@ -73,12 +95,13 @@ export function ClaimFormFields({
       await onSubmit(parsed.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setPending(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-5">
+    <form onSubmit={handleSubmit} noValidate className="grid gap-5">
       <Field label="State" htmlFor="state">
         <Select
           value={state || undefined}
@@ -98,72 +121,54 @@ export function ClaimFormFields({
       </Field>
       <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Year" htmlFor="year">
-          <Input
+          <NumberField
             id="year"
-            name="year"
-            required
-            type="number"
-            min={1985}
-            max={2028}
-            defaultValue={draft?.year}
+            value={year}
+            onChange={setYear}
             placeholder="2019"
-            className="h-10"
           />
         </Field>
         <Field label="Make" htmlFor="make">
-          <Input
+          <TextField
             id="make"
-            name="make"
-            required
-            defaultValue={draft?.make}
+            value={make}
+            onChange={setMake}
             placeholder="Honda"
           />
         </Field>
         <Field label="Model" htmlFor="model">
-          <Input
+          <TextField
             id="model"
-            name="model"
-            required
-            defaultValue={draft?.model}
+            value={model}
+            onChange={setModel}
             placeholder="CR-V EX"
           />
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Mileage" htmlFor="mileage">
-          <Input
+          <NumberField
             id="mileage"
-            name="mileage"
-            required
-            type="number"
-            min={0}
-            defaultValue={draft?.mileage}
+            value={mileage}
+            onChange={setMileage}
             placeholder="42000"
           />
         </Field>
         <Field label="Pre-accident value (USD)" htmlFor="preAccidentValue">
-          <Input
+          <NumberField
             id="preAccidentValue"
-            name="preAccidentValue"
-            required
-            type="number"
-            min={1}
-            step="0.01"
-            defaultValue={draft?.preAccidentValue}
+            value={preAccidentValue}
+            onChange={setPreAccidentValue}
             placeholder="18500"
           />
         </Field>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Repair $ (invoice or quote)" htmlFor="repairCost">
-          <Input
+          <NumberField
             id="repairCost"
-            name="repairCost"
-            required
-            type="number"
-            min={0}
-            step="0.01"
-            defaultValue={draft?.repairCost}
+            value={repairCost}
+            onChange={setRepairCost}
             placeholder="6400"
           />
         </Field>
@@ -173,22 +178,23 @@ export function ClaimFormFields({
             name="structural"
             value="yes"
             label="Yes"
-            defaultChecked={draft?.structural === "yes"}
+            checked={structural === "yes"}
+            onChange={() => setStructural("yes")}
           />
           <Radio
             name="structural"
             value="no"
             label="No"
-            defaultChecked={draft?.structural !== "yes"}
+            checked={structural === "no"}
+            onChange={() => setStructural("no")}
           />
         </fieldset>
       </div>
       <Field label="Insurer name" htmlFor="insurerName">
-        <Input
+        <TextField
           id="insurerName"
-          name="insurerName"
-          required
-          defaultValue={draft?.insurerName}
+          value={insurerName}
+          onChange={setInsurerName}
           placeholder="State Farm"
         />
       </Field>
@@ -198,13 +204,15 @@ export function ClaimFormFields({
           name="claimType"
           value="third"
           label="Third-party — at-fault driver’s carrier"
-          defaultChecked={draft?.claimType !== "first"}
+          checked={claimType === "third"}
+          onChange={() => setClaimType("third")}
         />
         <Radio
           name="claimType"
           value="first"
           label="First-party — my own insurer"
-          defaultChecked={draft?.claimType === "first"}
+          checked={claimType === "first"}
+          onChange={() => setClaimType("first")}
         />
         <p className="text-xs leading-5 text-muted-foreground">
           If you mark first-party and you are not in Georgia, TitleScar will not
@@ -213,11 +221,10 @@ export function ClaimFormFields({
         </p>
       </fieldset>
       <Field label="At-fault driver name" htmlFor="atFaultName">
-        <Input
+        <TextField
           id="atFaultName"
-          name="atFaultName"
-          required
-          defaultValue={draft?.atFaultName}
+          value={atFaultName}
+          onChange={setAtFaultName}
           placeholder="Alex Rivera"
         />
       </Field>
@@ -235,6 +242,62 @@ export function ClaimFormFields({
         {pending ? pendingLabel : submitLabel}
       </Button>
     </form>
+  );
+}
+
+const fieldClass =
+  "h-10 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm";
+
+function TextField({
+  id,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      id={id}
+      name={id}
+      required
+      type="text"
+      autoComplete="off"
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      placeholder={placeholder}
+      className={cn(fieldClass)}
+    />
+  );
+}
+
+function NumberField({
+  id,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      id={id}
+      name={id}
+      required
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+      placeholder={placeholder}
+      className={cn(fieldClass)}
+    />
   );
 }
 
@@ -259,12 +322,14 @@ function Radio({
   name,
   value,
   label,
-  defaultChecked,
+  checked,
+  onChange,
 }: {
   name: string;
   value: string;
   label: string;
-  defaultChecked?: boolean;
+  checked: boolean;
+  onChange: () => void;
 }) {
   const id = `${name}-${value}`;
   return (
@@ -274,8 +339,8 @@ function Radio({
         type="radio"
         name={name}
         value={value}
-        defaultChecked={defaultChecked}
-        required
+        checked={checked}
+        onChange={onChange}
         className="size-4 accent-primary"
       />
       {label}
