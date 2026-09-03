@@ -5,13 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { parseClaimForm, type ClaimForm } from "@/lib/form-schema";
+  formErrorMessage,
+  parseClaimForm,
+  type ClaimForm,
+} from "@/lib/form-schema";
 import { US_STATES } from "@/lib/states";
 
 const STORAGE_KEY = "titlescar-claim-draft";
@@ -84,9 +81,7 @@ export function ClaimFormFields({
       atFaultName,
     });
     if (!parsed.success) {
-      setError(
-        "Check the required fields. Year, miles, and dollars must be numbers."
-      );
+      setError(formErrorMessage(parsed.error));
       return;
     }
     writeDraft(parsed.data);
@@ -103,21 +98,21 @@ export function ClaimFormFields({
   return (
     <form onSubmit={handleSubmit} noValidate className="grid gap-5">
       <Field label="State" htmlFor="state">
-        <Select
-          value={state || undefined}
-          onValueChange={(value) => setState(value ?? "")}
+        <select
+          id="state"
+          name="state"
+          required
+          value={state}
+          onChange={(event) => setState(event.currentTarget.value)}
+          className={cn(fieldClass, "bg-background")}
         >
-          <SelectTrigger id="state" className="h-10 w-full">
-            <SelectValue placeholder="Select state" />
-          </SelectTrigger>
-          <SelectContent>
-            {US_STATES.map((item) => (
-              <SelectItem key={item.code} value={item.code}>
-                {item.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Select state</option>
+          {US_STATES.map((item) => (
+            <option key={item.code} value={item.code}>
+              {item.name}
+            </option>
+          ))}
+        </select>
       </Field>
       <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Year" htmlFor="year">

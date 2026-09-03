@@ -55,3 +55,14 @@ export const US_STATES: { code: string; name: string }[] = [
 export function stateName(code: string): string {
   return US_STATES.find((s) => s.code === code)?.name ?? code;
 }
+
+export function normalizeState(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const upper = raw.toUpperCase();
+  const byCode = US_STATES.find((s) => s.code === upper);
+  if (byCode) return byCode.code;
+  const lower = raw.toLowerCase();
+  const byName = US_STATES.find((s) => s.name.toLowerCase() === lower);
+  return byName?.code ?? raw;
+}
